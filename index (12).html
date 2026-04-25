@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Market Intelligence — recommend-us</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,500;1,8..60,300;1,8..60,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#1A1714;
+  --ink2:#4A4540;
+  --ink3:#8A8580;
+  --ink4:#C5C0BB;
+  --bg:#FAFAF7;
+  --surface:#FFFFFF;
+  --rule:#E8E3DC;
+  --rule2:#D0C9C0;
+  --accent:#C8102E; /* Economist red */
+  --accent2:#A00D25;
+  --blue:#1B4F8A;
+  --green:#1A6B3C;
+  --amber:#B5620A;
+  --display:'Playfair Display',Georgia,serif;
+  --body:'Source Serif 4',Georgia,serif;
+  --mono:'JetBrains Mono',monospace;
+}
+
+html{font-size:16px;scroll-behavior:smooth}
+body{font-family:var(--body);background:var(--bg);color:var(--ink);line-height:1.55;-webkit-font-smoothing:antialiased}
+
+/* ── masthead ── */
+.masthead{background:var(--ink);padding:0;border-bottom:3px solid var(--accent)}
+.masthead-inner{max-width:1360px;margin:0 auto;padding:0 48px;display:flex;align-items:stretch;justify-content:space-between}
+.masthead-brand{padding:18px 0;border-right:1px solid rgba(255,255,255,.12)}
+.masthead-brand-name{font-family:var(--display);font-size:11px;font-weight:600;color:#fff;letter-spacing:.25em;text-transform:uppercase;margin-bottom:2px}
+.masthead-brand-sub{font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.4);letter-spacing:.12em;text-transform:uppercase}
+.masthead-title{padding:18px 48px;flex:1;display:flex;align-items:center}
+.masthead-report{font-family:var(--display);font-size:22px;color:#fff;font-weight:700;letter-spacing:-.01em}
+.masthead-report em{color:var(--accent);font-style:italic}
+.masthead-meta{padding:18px 0 18px 48px;display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:4px;border-left:1px solid rgba(255,255,255,.12)}
+.masthead-date{font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.5);letter-spacing:.1em;text-transform:uppercase}
+.masthead-live{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.6);letter-spacing:.08em}
+.live-dot{width:5px;height:5px;background:#4AE54A;border-radius:50%;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── page ── */
+.page{max-width:1360px;margin:0 auto;padding:0 48px 80px}
+
+/* ── loading ── */
+#loading{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px}
+.loading-title{font-family:var(--display);font-size:28px;color:var(--ink);font-style:italic}
+.loading-bar-wrap{width:320px;height:1px;background:var(--rule2);position:relative}
+.loading-bar-fill{height:100%;background:var(--accent);animation:load 1.6s ease-in-out forwards}
+@keyframes load{from{width:0}to{width:100%}}
+.loading-sub{font-family:var(--mono);font-size:10px;color:var(--ink3);letter-spacing:.12em;text-transform:uppercase}
+
+/* ── section rule ── */
+.section-rule{border:none;border-top:3px solid var(--ink);margin:48px 0 0;padding-bottom:12px;display:flex;align-items:flex-end;justify-content:space-between}
+.section-title{font-family:var(--display);font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;color:var(--ink)}
+.section-note{font-family:var(--mono);font-size:9px;color:var(--ink3);letter-spacing:.08em;text-transform:uppercase}
+
+/* ── summary strip ── */
+.summary-strip{display:grid;grid-template-columns:repeat(6,1fr);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);margin:24px 0 0}
+.summary-cell{padding:20px 0;border-right:1px solid var(--rule);padding-right:24px;padding-left:24px}
+.summary-cell:first-child{padding-left:0}
+.summary-cell:last-child{border-right:none}
+.summary-cell-label{font-family:var(--mono);font-size:9px;color:var(--ink3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+.summary-cell-val{font-family:var(--display);font-size:36px;font-weight:700;color:var(--ink);line-height:1;letter-spacing:-.02em}
+.summary-cell-val.red{color:var(--accent)}
+.summary-cell-val.blue{color:var(--blue)}
+.summary-cell-val.green{color:var(--green)}
+.summary-cell-sub{font-family:var(--body);font-size:11px;color:var(--ink3);margin-top:6px;font-style:italic}
+
+/* ── grid layouts ── */
+.grid-3-1{display:grid;grid-template-columns:3fr 1fr;gap:48px;margin-top:32px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-top:32px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:48px;margin-top:32px}
+.grid-1-2{display:grid;grid-template-columns:1fr 2fr;gap:48px;margin-top:32px}
+
+/* ── chart titles ── */
+.chart-title{font-family:var(--display);font-size:16px;font-weight:700;color:var(--ink);margin-bottom:4px;line-height:1.3}
+.chart-sub{font-family:var(--body);font-size:12px;color:var(--ink3);font-style:italic;margin-bottom:16px;border-bottom:1px solid var(--rule);padding-bottom:12px}
+
+/* ── bar charts (editorial style) ── */
+.ebar-list{display:flex;flex-direction:column;gap:0}
+.ebar-item{display:flex;align-items:center;padding:8px 0;border-bottom:1px solid var(--rule);gap:12px}
+.ebar-item:last-child{border-bottom:none}
+.ebar-rank{font-family:var(--mono);font-size:10px;color:var(--ink4);width:16px;text-align:right;flex-shrink:0}
+.ebar-label{font-family:var(--body);font-size:13px;color:var(--ink);min-width:120px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ebar-track{flex:1;height:8px;background:var(--rule);position:relative}
+.ebar-fill{height:100%;position:absolute;left:0;top:0;transition:width 1s cubic-bezier(.23,1,.32,1)}
+.ebar-count{font-family:var(--mono);font-size:11px;color:var(--ink2);min-width:36px;text-align:right}
+.ebar-pct{font-family:var(--mono);font-size:10px;color:var(--ink3);min-width:36px;text-align:right}
+
+/* ── big number callout ── */
+.big-callout{background:var(--ink);color:#fff;padding:24px;margin-bottom:16px}
+.big-callout-num{font-family:var(--display);font-size:52px;font-weight:700;line-height:1;letter-spacing:-.03em;margin-bottom:8px}
+.big-callout-label{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.5)}
+.big-callout-sub{font-family:var(--body);font-size:12px;color:rgba(255,255,255,.6);margin-top:8px;font-style:italic}
+
+/* ── stat rows ── */
+.stat-row{display:flex;justify-content:space-between;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--rule)}
+.stat-row:last-child{border-bottom:none}
+.stat-label{font-family:var(--body);font-size:13px;color:var(--ink2)}
+.stat-val{font-family:var(--mono);font-size:13px;font-weight:500;color:var(--ink)}
+.stat-badge{font-family:var(--mono);font-size:10px;padding:2px 8px;border:1px solid currentColor}
+.badge-up{color:var(--green)}
+.badge-down{color:var(--accent)}
+.badge-neutral{color:var(--ink3)}
+
+/* ── keyword bars (large) ── */
+.keyword-section{margin-top:24px}
+.keyword-item{display:flex;align-items:center;gap:16px;padding:12px 0;border-bottom:1px solid var(--rule)}
+.keyword-item:last-child{border-bottom:none}
+.keyword-word{font-family:var(--display);font-size:20px;font-weight:600;color:var(--ink);min-width:160px;font-style:italic}
+.keyword-track{flex:1;height:12px;background:var(--rule);position:relative}
+.keyword-fill{height:100%;position:absolute;left:0;top:0;background:var(--ink);transition:width 1.2s cubic-bezier(.23,1,.32,1)}
+.keyword-count{font-family:var(--mono);font-size:12px;color:var(--ink3);min-width:50px;text-align:right}
+.keyword-trend{font-family:var(--mono);font-size:10px;min-width:48px;text-align:right}
+
+/* ── heatmap ── */
+.heatmap-grid{display:grid;gap:2px}
+.hm-label{font-family:var(--mono);font-size:9px;color:var(--ink3);letter-spacing:.06em}
+.hm-cell{border-radius:1px;cursor:default;position:relative;transition:opacity .15s}
+.hm-cell:hover::after{content:attr(data-tip);position:absolute;bottom:110%;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;font-family:var(--mono);font-size:9px;padding:3px 7px;white-space:nowrap;pointer-events:none;z-index:10}
+
+/* ── geo table ── */
+.geo-table{width:100%;border-collapse:collapse}
+.geo-table th{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);text-align:left;padding:6px 0;border-bottom:2px solid var(--ink)}
+.geo-table td{font-family:var(--body);font-size:13px;color:var(--ink);padding:9px 0;border-bottom:1px solid var(--rule);vertical-align:middle}
+.geo-table td.num{font-family:var(--mono);font-size:12px;text-align:right}
+.geo-table td.rate{font-family:var(--mono);font-size:11px;text-align:right}
+.geo-mini-bar{height:4px;background:var(--accent);display:inline-block;vertical-align:middle;margin-left:8px}
+
+/* ── scatter/bubble wrapper ── */
+.chart-wrap{position:relative}
+
+/* ── researcher table ── */
+.res-table{width:100%;border-collapse:collapse}
+.res-table th{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);text-align:left;padding:6px 0;border-bottom:2px solid var(--ink)}
+.res-table td{padding:10px 0;border-bottom:1px solid var(--rule);vertical-align:middle}
+.res-name{font-family:var(--body);font-size:13px;color:var(--ink);font-weight:500}
+.res-num{font-family:var(--mono);font-size:12px;color:var(--ink2);text-align:right}
+.res-bar-track{width:80px;height:5px;background:var(--rule);display:inline-block;vertical-align:middle;position:relative}
+.res-bar-fill{height:100%;position:absolute;left:0;top:0;background:var(--ink)}
+.res-rate{font-family:var(--mono);font-size:11px;text-align:right}
+
+/* ── pull quote ── */
+.pull-quote{border-left:4px solid var(--accent);padding-left:20px;margin:24px 0}
+.pull-quote p{font-family:var(--display);font-size:18px;font-style:italic;color:var(--ink);line-height:1.4}
+.pull-quote cite{font-family:var(--mono);font-size:9px;color:var(--ink3);letter-spacing:.1em;text-transform:uppercase;display:block;margin-top:8px}
+
+/* ── signal cards ── */
+.signal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:16px}
+.signal-card{border:1px solid var(--rule);padding:16px;background:var(--surface)}
+.signal-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.signal-icon{width:28px;height:28px;background:var(--ink);border-radius:50%;display:flex;align-items:center;justify-content:center}
+.signal-type{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3)}
+.signal-title{font-family:var(--display);font-size:14px;font-weight:700;color:var(--ink);margin-bottom:4px}
+.signal-body{font-family:var(--body);font-size:12px;color:var(--ink2);line-height:1.5}
+.signal-stat{font-family:var(--mono);font-size:20px;font-weight:500;color:var(--accent);margin-top:10px}
+
+/* ── trend arrow ── */
+.trend-up{color:var(--green)}
+.trend-down{color:var(--accent)}
+
+/* ── footnote ── */
+.footnote{font-family:var(--mono);font-size:9px;color:var(--ink4);letter-spacing:.06em;margin-top:48px;padding-top:16px;border-top:1px solid var(--rule);text-align:center}
+
+button.refresh{background:none;border:1px solid rgba(255,255,255,.2);padding:4px 12px;font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.5);cursor:pointer;letter-spacing:.08em;text-transform:uppercase;transition:all .15s}
+button.refresh:hover{border-color:rgba(255,255,255,.5);color:rgba(255,255,255,.8)}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="loading-title">Compiling market intelligence…</div>
+  <div class="loading-bar-wrap"><div class="loading-bar-fill"></div></div>
+  <div class="loading-sub" id="load-msg">Connecting to data feed</div>
+</div>
+
+<!-- masthead -->
+<header class="masthead">
+  <div class="masthead-inner">
+    <div class="masthead-brand">
+      <div class="masthead-brand-name">recommend-us</div>
+      <div class="masthead-brand-sub">Intelligence Division · v3</div>
+    </div>
+    <div class="masthead-title">
+      <div class="masthead-report">The <em>LinkedIn Market</em> Intelligence Report</div>
+    </div>
+    <div class="masthead-meta">
+      <div class="masthead-date" id="report-date">—</div>
+      <div class="masthead-live"><div class="live-dot"></div> Live data</div>
+      <button class="refresh" onclick="loadData()">↻ Refresh</button>
+    </div>
+  </div>
+</header>
+
+<div class="page">
+
+  <!-- summary strip -->
+  <div class="summary-strip" id="summary-strip">
+    <div class="summary-cell"><div class="summary-cell-label">Posts collected</div><div class="summary-cell-val red" id="s-total">—</div><div class="summary-cell-sub" id="s-total-sub">—</div></div>
+    <div class="summary-cell"><div class="summary-cell-label">Leads identified</div><div class="summary-cell-val" id="s-leads">—</div><div class="summary-cell-sub" id="s-leads-sub">—</div></div>
+    <div class="summary-cell"><div class="summary-cell-label">Conversion rate</div><div class="summary-cell-val blue" id="s-conv">—</div><div class="summary-cell-sub" id="s-conv-sub">—</div></div>
+    <div class="summary-cell"><div class="summary-cell-label">Markets tracked</div><div class="summary-cell-val" id="s-markets">—</div><div class="summary-cell-sub" id="s-markets-sub">—</div></div>
+    <div class="summary-cell"><div class="summary-cell-label">Sectors active</div><div class="summary-cell-val green" id="s-sectors">—</div><div class="summary-cell-sub" id="s-sectors-sub">—</div></div>
+    <div class="summary-cell"><div class="summary-cell-label">Week growth</div><div class="summary-cell-val" id="s-growth">—</div><div class="summary-cell-sub" id="s-growth-sub">—</div></div>
+  </div>
+
+  <!-- SECTION: DEMAND SIGNALS -->
+  <div class="section-rule">
+    <div class="section-title">I. Market Demand Signals</div>
+    <div class="section-note">Where real pain is happening right now</div>
+  </div>
+
+  <div class="grid-3-1">
+    <div>
+      <div class="chart-title">Top trending keywords</div>
+      <div class="chart-sub">Words appearing most in service-seeking posts, ranked by frequency</div>
+      <div class="keyword-section" id="keyword-bars"></div>
+    </div>
+    <div>
+      <div class="big-callout" id="top-keyword-callout">
+        <div class="big-callout-num" id="bc-word">—</div>
+        <div class="big-callout-label">Top demand signal</div>
+        <div class="big-callout-sub" id="bc-sub">Most searched term this period</div>
+      </div>
+      <div class="stat-row"><div class="stat-label">Unique terms tracked</div><div class="stat-val" id="unique-terms">—</div></div>
+      <div class="stat-row"><div class="stat-label">Avg post length</div><div class="stat-val" id="avg-post-len">—</div></div>
+      <div class="stat-row"><div class="stat-label">Posts with urgency</div><div class="stat-val" id="urgency-pct">—</div></div>
+      <div class="stat-row"><div class="stat-label">Posts with location</div><div class="stat-val" id="location-pct">—</div></div>
+    </div>
+  </div>
+
+  <!-- Signal cards -->
+  <div class="signal-grid" id="signal-grid"></div>
+
+  <!-- SECTION: INDUSTRY TRENDS -->
+  <div class="section-rule">
+    <div class="section-title">II. Industry Trends</div>
+    <div class="section-note">Which sectors are heating up or cooling down</div>
+  </div>
+
+  <div class="grid-1-2">
+    <div>
+      <div class="chart-title">Industry volume</div>
+      <div class="chart-sub">Posts by sector, ranked by activity</div>
+      <div class="ebar-list" id="industry-bars"></div>
+    </div>
+    <div>
+      <div class="chart-title">Weekly industry heatmap</div>
+      <div class="chart-sub">Activity intensity across the past 6 weeks — darker means more activity</div>
+      <div id="heatmap-area"></div>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-top:32px">
+    <div>
+      <div class="chart-title">Volume trend — last 30 days</div>
+      <div class="chart-sub">Daily post submissions by your research team</div>
+      <canvas id="volume-chart" height="160"></canvas>
+    </div>
+    <div>
+      <div class="chart-title">Industry lead conversion rates</div>
+      <div class="chart-sub">Which sectors convert from post to qualified lead</div>
+      <div class="ebar-list" id="industry-conv-bars"></div>
+    </div>
+  </div>
+
+  <!-- SECTION: WHO IS ASKING -->
+  <div class="section-rule">
+    <div class="section-title">III. Who Is Asking</div>
+    <div class="section-note">Seniority, company stage, and profile of service-seekers</div>
+  </div>
+
+  <div class="grid-3">
+    <div>
+      <div class="chart-title">Seniority distribution</div>
+      <div class="chart-sub">Who is posting service requests</div>
+      <div class="ebar-list" id="seniority-bars"></div>
+    </div>
+    <div>
+      <div class="chart-title">Top job titles</div>
+      <div class="chart-sub">Most common roles making requests</div>
+      <div class="ebar-list" id="jobtitle-bars"></div>
+    </div>
+    <div>
+      <div class="chart-title">Company stage</div>
+      <div class="chart-sub">Age and funding profile of companies</div>
+      <div id="company-stage-stats"></div>
+      <canvas id="funding-chart" height="160" style="margin-top:16px"></canvas>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-top:32px">
+    <div>
+      <div class="chart-title">Company size breakdown</div>
+      <div class="chart-sub">Staff count of companies seeking services</div>
+      <div class="ebar-list" id="size-bars"></div>
+    </div>
+    <div>
+      <div class="chart-title">Languages & education</div>
+      <div class="chart-sub">Profile of service-seekers</div>
+      <div class="chart-title" style="font-size:13px;margin-top:0;margin-bottom:8px">Languages</div>
+      <div class="ebar-list" id="lang-bars"></div>
+      <div class="chart-title" style="font-size:13px;margin-top:20px;margin-bottom:8px">Education</div>
+      <div class="ebar-list" id="edu-bars"></div>
+    </div>
+  </div>
+
+  <!-- SECTION: GEOGRAPHIC INTELLIGENCE -->
+  <div class="section-rule">
+    <div class="section-title">IV. Geographic Intelligence</div>
+    <div class="section-note">Where demand is concentrated and converting</div>
+  </div>
+
+  <div class="grid-1-2">
+    <div>
+      <div class="pull-quote" id="geo-pullquote">
+        <p id="geo-quote-text">—</p>
+        <cite id="geo-quote-cite">—</cite>
+      </div>
+      <div class="stat-row"><div class="stat-label">Countries tracked</div><div class="stat-val" id="geo-countries">—</div></div>
+      <div class="stat-row"><div class="stat-label">Top performing market</div><div class="stat-val" id="geo-top">—</div></div>
+      <div class="stat-row"><div class="stat-label">Highest lead rate</div><div class="stat-val" id="geo-best-rate">—</div></div>
+      <div class="stat-row"><div class="stat-label">New markets this week</div><div class="stat-val" id="geo-new">—</div></div>
+    </div>
+    <div>
+      <div class="chart-title">Market performance table</div>
+      <div class="chart-sub">Countries ranked by volume with lead conversion rates</div>
+      <table class="geo-table">
+        <thead><tr><th>Market</th><th style="text-align:right">Posts</th><th style="text-align:right">Leads</th><th style="text-align:right">Rate</th><th style="text-align:right">Volume</th></tr></thead>
+        <tbody id="geo-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SECTION: RESEARCHER INTELLIGENCE -->
+  <div class="section-rule">
+    <div class="section-title">V. Research Team Performance</div>
+    <div class="section-note">Individual contribution and lead quality</div>
+  </div>
+
+  <div class="grid-3-1">
+    <div>
+      <table class="res-table">
+        <thead><tr><th>Researcher</th><th style="text-align:right">Posts</th><th style="text-align:right">Leads</th><th style="text-align:right">Rate</th><th>Output</th></tr></thead>
+        <tbody id="researcher-body"></tbody>
+      </table>
+    </div>
+    <div>
+      <div class="chart-title">Data quality</div>
+      <div class="chart-sub">Enrichment completeness</div>
+      <div id="quality-stats"></div>
+    </div>
+  </div>
+
+  <div class="footnote" id="footnote">Data sourced from LinkedIn posts collected by the recommend-us research team · <span id="footnote-date">—</span></div>
+</div>
+
+<script>
+var CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRv4c51jlLGhyJBDFOEoWgaxaikHqggFoERNizeFY8Zy0kZG-L3h3bgpkSMLxwHRiY3SHn7r-3mO2do/pub?gid=1373170532&single=true&output=csv';
+var SHEET_URL = 'https://script.google.com/macros/s/AKfycbyWci_URm6hActJgAzNt2Js8DZPS6ydKesuOMP7mI6V2md-6qEDeC_cD86QKgmtXd9Y8w/exec';
+var charts = {};
+
+var C = {
+  timestamp:0,submittedBy:1,postUrl:2,personName:3,linkedinUrl:4,
+  postContent:5,country:6,company:7,companySize:8,industry:9,
+  status:10,messageToSend:11,opsNotes:12,
+  firstName:13,lastName:14,fullName:15,locationLI:16,headline:17,
+  summary:18,jobTitle:19,prevJobTitle:20,lastEdu:21,lastEduDates:22,
+  languages:23,id:24,publicUrl:25,companyNameLI:26,companyLIUrl:27,
+  companyId:28,enrichStatus:29,
+  coName:30,coUniversal:31,coWebsite:32,coLinkedin:33,coFounded:34,
+  coTagline:35,coStaffRange:36,coStaffCount:37,coPhone:38,coCountry:39,
+  coCity:40,coPostal:41,coStreet:42,coId:43,coHashtags:44,
+  coIndustries:45,coSpecialities:46,coDescription:47,coFollowers:48,
+  coFundingAmt:49,coFundingDate:50,enrichCoStatus:51
+};
+
+function v(r,c){return (r[c]||'').toString().trim();}
+function pct(n,d){return d>0?Math.round(n/d*100)+'%':'0%';}
+function num(s){return parseInt(s)||0;}
+
+function countBy(rows,col){
+  var c={};
+  rows.forEach(function(r){var k=v(r,col);if(k&&k!=='—'&&k!=='')c[k]=(c[k]||0)+1;});
+  return c;
+}
+
+function topN(obj,n){
+  return Object.keys(obj).filter(function(k){return k&&k!=='—'&&k!=='';})
+    .sort(function(a,b){return obj[b]-obj[a];}).slice(0,n);
+}
+
+function makeEBar(rank,label,count,max,color,pctVal){
+  var w=max>0?Math.round(count/max*100):0;
+  return '<div class="ebar-item">'+
+    '<div class="ebar-rank">'+rank+'</div>'+
+    '<div class="ebar-label" title="'+label+'">'+label+'</div>'+
+    '<div class="ebar-track"><div class="ebar-fill" style="width:'+w+'%;background:'+color+'"></div></div>'+
+    '<div class="ebar-count">'+count+'</div>'+
+    (pctVal!==undefined?'<div class="ebar-pct">'+pctVal+'</div>':'')+
+    '</div>';
+}
+
+function makeChart(id,type,labels,datasets,opts){
+  var ctx=document.getElementById(id);
+  if(!ctx)return;
+  if(charts[id])charts[id].destroy();
+  charts[id]=new Chart(ctx,{
+    type:type,
+    data:{labels:labels,datasets:datasets},
+    options:Object.assign({responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},scales:{}},opts||{})
+  });
+}
+
+async function loadData(){
+  document.getElementById('loading').style.display='flex';
+  document.getElementById('load-msg').textContent='CONNECTING TO DATA FEED...';
+  try{
+    document.getElementById('load-msg').textContent='FETCHING DATA...';
+    var r = await fetch(CSV_URL);
+    var csvText = await r.text();
+    var rows = parseCSV(csvText);
+    document.getElementById('load-msg').textContent='PROCESSING '+rows.length+' RECORDS...';
+    await new Promise(function(res){setTimeout(res,300);});
+    render(rows);
+    document.getElementById('loading').style.display='none';
+  }catch(e){
+    console.log('CSV fetch error:', e);
+    document.getElementById('load-msg').textContent='LOADING SAMPLE DATA...';
+    await new Promise(function(res){setTimeout(res,400);});
+    render(getSample());
+    document.getElementById('loading').style.display='none';
+  }
+}
+
+function parseCSV(csv) {
+  var lines = csv.split(/\r?\n/).filter(function(l){ return l.trim(); });
+  if (lines.length < 2) return [];
+  
+  function splitCSVLine(line) {
+    var result = [], cur = '', inQ = false;
+    for (var i = 0; i < line.length; i++) {
+      var c = line[i];
+      if (c === '"') { inQ = !inQ; }
+      else if (c === ',' && !inQ) { result.push(cur.trim()); cur = ''; }
+      else { cur += c; }
+    }
+    result.push(cur.trim());
+    return result;
+  }
+  
+  var headers = splitCSVLine(lines[0]);
+  return lines.slice(1).map(function(line) {
+    var vals = splitCSVLine(line);
+    var row = new Array(60).fill('');
+    headers.forEach(function(h, i) {
+      var col = getColIndex(h);
+      if (col >= 0) row[col] = (vals[i] || '').replace(/^"|"$/g, '');
+    });
+    return row;
+  }).filter(function(r){ return r[0]; });
+}
+
+function getColIndex(header) {
+  var map = {
+    'Timestamp':0,'Submitted by':1,'Post URL':2,'Person name':3,'LinkedIn profile':4,
+    'Post content':5,'Country':6,'Company':7,'Company size':8,'Industry':9,
+    'Status':10,'Message to send':11,'Ops notes':12,
+    'firstname (linkedin)':13,'lastname (linkedin)':14,'fullname (linkedin)':15,
+    'location (linkedin)':16,'headline (linkedin)':17,'summary (linkedin)':18,
+    'job title (linkedin)':19,'previous job title (linkedin)':20,
+    'last education (linkedin)':21,'last education dates (linkedin)':22,
+    'languages (linkedin)':23,'id (linkedin)':24,'public profile url (linkedin)':25,
+    'company name (linkedin)':26,'company linkedin url (linkedin)':27,
+    'company id (linkedin)':28,'enrich profiles status':29,
+    'Company name (enrich company)':30,'Company universal name (enrich company)':31,
+    'Company website (enrich company)':32,'Company linkedinUrl (enrich company)':33,
+    'Company foundedOn (enrich company)':34,'Company tagline (enrich company)':35,
+    'Company staff count range (enrich company)':36,'Company staff count (enrich company)':37,
+    'Company phone number (enrich company)':38,'Company country (enrich company)':39,
+    'Company city (enrich company)':40,'Company postal code (enrich company)':41,
+    'Company street adress (enrich company)':42,'Company id (enrich company)':43,
+    'Company associated hashtags (enrich company)':44,'Company industries (enrich company)':45,
+    'Company specialities (enrich company)':46,'Company description (enrich company)':47,
+    'Company followers (enrich company)':48,'Company last funding money raised (enrich company)':49,
+    'Company last funding announced on (enrich company)':50,'enrich company status':51
+  };
+  return map[header] !== undefined ? map[header] : -1;
+}
+
+function parseRows(rawArr){
+  return rawArr.map(function(obj){
+    return [
+      obj['Timestamp']||'',obj['Submitted by']||'',obj['Post URL']||'',
+      obj['Person name']||'',obj['LinkedIn profile']||'',obj['Post content']||'',
+      obj['Country']||'',obj['Company']||'',obj['Company size']||'',obj['Industry']||'',
+      obj['Status']||'',obj['Message to send']||'',obj['Ops notes']||'',
+      obj['firstname (linkedin)']||'',obj['lastname (linkedin)']||'',obj['fullname (linkedin)']||'',
+      obj['location (linkedin)']||'',obj['headline (linkedin)']||'',obj['summary (linkedin)']||'',
+      obj['job title (linkedin)']||'',obj['previous job title (linkedin)']||'',
+      obj['last education (linkedin)']||'',obj['last education dates (linkedin)']||'',
+      obj['languages (linkedin)']||'',obj['id (linkedin)']||'',obj['public profile url (linkedin)']||'',
+      obj['company name (linkedin)']||'',obj['company linkedin url (linkedin)']||'',
+      obj['company id (linkedin)']||'',obj['enrich profiles status']||'',
+      obj['Company name (enrich company)']||'',obj['Company universal name (enrich company)']||'',
+      obj['Company website (enrich company)']||'',obj['Company linkedinUrl (enrich company)']||'',
+      obj['Company foundedOn (enrich company)']||'',obj['Company tagline (enrich company)']||'',
+      obj['Company staff count range (enrich company)']||'',obj['Company staff count (enrich company)']||'',
+      obj['Company phone number (enrich company)']||'',obj['Company country (enrich company)']||'',
+      obj['Company city (enrich company)']||'',obj['Company postal code (enrich company)']||'',
+      obj['Company street adress (enrich company)']||'',obj['Company id (enrich company)']||'',
+      obj['Company associated hashtags (enrich company)']||'',obj['Company industries (enrich company)']||'',
+      obj['Company specialities (enrich company)']||'',obj['Company description (enrich company)']||'',
+      obj['Company followers (enrich company)']||'',obj['Company last funding money raised (enrich company)']||'',
+      obj['Company last funding announced on (enrich company)']||'',obj['enrich company status']||''
+    ];
+  }).filter(function(r){return r[0];});
+}
+
+function render(rows){
+  var total=rows.length;
+  if(!total)return;
+
+  var now=new Date();
+  var today=now.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('report-date').textContent=today.toUpperCase();
+  document.getElementById('footnote-date').textContent=today;
+
+  var weekAgo=new Date(now.getTime()-7*24*60*60*1000);
+  var twoWkAgo=new Date(now.getTime()-14*24*60*60*1000);
+  var thisWeek=rows.filter(function(r){return new Date(r[0])>=weekAgo;});
+  var lastWeek=rows.filter(function(r){return new Date(r[0])>=twoWkAgo&&new Date(r[0])<weekAgo;});
+
+  var leads=rows.filter(function(r){return r[C.status]==='Lead';}).length;
+  var twLeads=thisWeek.filter(function(r){return r[C.status]==='Lead';}).length;
+  var lwLeads=lastWeek.filter(function(r){return r[C.status]==='Lead';}).length;
+  var wkGrowth=lwLeads>0?Math.round((twLeads-lwLeads)/lwLeads*100):0;
+
+  var countryCounts=countBy(rows,C.country);
+  var indCounts=countBy(rows,C.industry);
+  var uniqueC=Object.keys(countryCounts).length;
+  var uniqueI=Object.keys(indCounts).length;
+
+  // ── Summary strip ──
+  document.getElementById('s-total').textContent=total.toLocaleString();
+  document.getElementById('s-total-sub').textContent=thisWeek.length+' this week';
+  document.getElementById('s-leads').textContent=leads;
+  document.getElementById('s-leads-sub').textContent=twLeads+' this week';
+  document.getElementById('s-conv').textContent=pct(leads,total);
+  document.getElementById('s-conv-sub').textContent=pct(twLeads,thisWeek.length)+' this week';
+  document.getElementById('s-markets').textContent=uniqueC;
+  document.getElementById('s-markets-sub').textContent='countries active';
+  document.getElementById('s-sectors').textContent=uniqueI;
+  document.getElementById('s-sectors-sub').textContent='industries tracked';
+  document.getElementById('s-growth').textContent=(wkGrowth>=0?'+':'')+wkGrowth+'%';
+  document.getElementById('s-growth-sub').textContent='week on week posts';
+
+  // ── Keywords ──
+  var stops='the and for are but not you all can was one our out day get has him his how its may new now old see two who did man men put say she too use a i to is in it of on at be as an we or if do no so up by my go me us he am im your their with have from this that they will been were what when then than just some into more also about would could should which there these those other after before because looking anyone people know need good great help please thanks thank hello hi hey post share like comment follow linkedin connect network reach out happy excited proud glad team work company business years year month week day time first last next back well even make take give come think want find way much many most best high low big small long short'.split(' ');
+  var wc={};
+  rows.forEach(function(r){
+    v(r,C.postContent).toLowerCase().replace(/[^a-z\s]/g,' ').split(/\s+/).forEach(function(w){
+      if(w.length>3&&stops.indexOf(w)===-1)wc[w]=(wc[w]||0)+1;
+    });
+  });
+  var topW=topN(wc,15);
+  var maxW=topW.length?wc[topW[0]]:1;
+
+  document.getElementById('bc-word').textContent=topW[0]||'—';
+  document.getElementById('bc-sub').textContent='Appears '+( topW[0]?wc[topW[0]]:0)+' times across all posts';
+  document.getElementById('unique-terms').textContent=Object.keys(wc).length.toLocaleString();
+
+  var totalLen=rows.reduce(function(s,r){return s+v(r,C.postContent).split(' ').length;},0);
+  document.getElementById('avg-post-len').textContent=Math.round(totalLen/total)+' words';
+
+  var urgencyWords=['asap','urgent','immediately','today','now','emergency','quickly','fast'];
+  var urgencyCount=rows.filter(function(r){
+    var t=v(r,C.postContent).toLowerCase();
+    return urgencyWords.some(function(w){return t.indexOf(w)>-1;});
+  }).length;
+  document.getElementById('urgency-pct').textContent=pct(urgencyCount,total);
+
+  var locCount=rows.filter(function(r){return v(r,C.country)&&v(r,C.country)!=='—';}).length;
+  document.getElementById('location-pct').textContent=pct(locCount,total);
+
+  document.getElementById('keyword-bars').innerHTML=topW.slice(0,10).map(function(w,i){
+    var width=Math.round(wc[w]/maxW*100);
+    var twW={}; thisWeek.forEach(function(r){v(r,C.postContent).toLowerCase().replace(/[^a-z\s]/g,' ').split(/\s+/).forEach(function(x){if(x===w)twW[w]=(twW[w]||0)+1;});});
+    var lwW={}; lastWeek.forEach(function(r){v(r,C.postContent).toLowerCase().replace(/[^a-z\s]/g,' ').split(/\s+/).forEach(function(x){if(x===w)lwW[w]=(lwW[w]||0)+1;});});
+    var trend=(twW[w]||0)>(lwW[w]||0)?'▲':'▼';
+    var tcolor=(twW[w]||0)>(lwW[w]||0)?'var(--green)':'var(--ink3)';
+    return '<div class="keyword-item">'+
+      '<div class="keyword-word">'+w+'</div>'+
+      '<div class="keyword-track"><div class="keyword-fill" style="width:'+width+'%"></div></div>'+
+      '<div class="keyword-count">'+wc[w]+'</div>'+
+      '<div class="keyword-trend" style="color:'+tcolor+'">'+trend+'</div>'+
+      '</div>';
+  }).join('');
+
+  // Signal cards
+  var topInd=topN(indCounts,1)[0]||'—';
+  var topCountry=topN(countryCounts,1)[0]||'—';
+  var funded=rows.filter(function(r){var f=v(r,C.coFundingAmt);return f&&f!=='—'&&f!=='0';}).length;
+  document.getElementById('signal-grid').innerHTML=[
+    {title:'Hottest sector',stat:topInd,body:'The '+topInd+' sector accounts for '+industryCounts[topInd]+' posts — '+pct(industryCounts[topInd],total)+' of all activity.',type:'DEMAND'},
+    {title:'Top geography',stat:topCountry,body:topCountry+' leads with '+countryCounts[topCountry]+' posts. '+pct(countryCounts[topCountry],total)+' of all requests originate here.',type:'GEO'},
+    {title:'Funded company demand',stat:funded+' posts',body:pct(funded,total)+' of service requests come from companies with disclosed funding rounds.',type:'SIGNAL'},
+  ].map(function(s){
+    return '<div class="signal-card">'+
+      '<div class="signal-card-top"><div class="signal-type">'+s.type+'</div></div>'+
+      '<div class="signal-title">'+s.title+'</div>'+
+      '<div class="signal-body">'+s.body+'</div>'+
+      '<div class="signal-stat">'+s.stat+'</div>'+
+      '</div>';
+  }).join('');
+  var industryCounts=indCounts;
+
+  // ── Industry bars ──
+  var topInd8=topN(industryCounts,8);
+  var maxInd=topInd8.length?industryCounts[topInd8[0]]:1;
+  var indColors=['#1A1714','#C8102E','#1B4F8A','#1A6B3C','#B5620A','#5B4A8A','#0A7B8A','#8A1A1A'];
+  document.getElementById('industry-bars').innerHTML=topInd8.map(function(ind,i){
+    return makeEBar(i+1,ind,industryCounts[ind],maxInd,indColors[i%indColors.length]);
+  }).join('');
+
+  // Industry conversion rates
+  var indRate={};
+  rows.forEach(function(r){
+    var ind=v(r,C.industry);if(!ind||ind==='—')return;
+    if(!indRate[ind])indRate[ind]={t:0,l:0};
+    indRate[ind].t++;
+    if(r[C.status]==='Lead')indRate[ind].l++;
+  });
+  var indByConv=Object.keys(indRate).filter(function(k){return indRate[k].t>=2;})
+    .sort(function(a,b){return (indRate[b].l/indRate[b].t)-(indRate[a].l/indRate[a].t);}).slice(0,8);
+  var maxConv=indByConv.length?indRate[indByConv[0]].l/indRate[indByConv[0]].t:1;
+  document.getElementById('industry-conv-bars').innerHTML=indByConv.map(function(ind,i){
+    var rate=Math.round(indRate[ind].l/indRate[ind].t*100);
+    return makeEBar(i+1,ind,rate,100,'var(--green)',rate+'%');
+  }).join('');
+
+  // ── Heatmap ──
+  var heatInds=topN(industryCounts,6);
+  var heatWeeks=['5w','4w','3w','2w','1w','Now'];
+  var heatData={};
+  heatInds.forEach(function(ind){
+    heatData[ind]=[0,0,0,0,0,0];
+    rows.forEach(function(r){
+      if(v(r,C.industry)!==ind)return;
+      var dt=new Date(r[0]);if(isNaN(dt.getTime()))return;
+      var diff=Math.floor((now-dt)/(7*24*60*60*1000));
+      if(diff>=0&&diff<6)heatData[ind][5-diff]++;
+    });
+  });
+  var allV=[];heatInds.forEach(function(ind){heatData[ind].forEach(function(x){allV.push(x);});});
+  var maxH=Math.max.apply(null,allV)||1;
+
+  var hm='<div style="display:grid;grid-template-columns:100px repeat(6,1fr);gap:3px;font-family:var(--mono)">';
+  hm+='<div></div>';
+  heatWeeks.forEach(function(w){hm+='<div style="font-size:9px;color:var(--ink3);text-align:center;padding-bottom:6px;letter-spacing:.06em">'+w+'</div>';});
+  heatInds.forEach(function(ind){
+    hm+='<div style="font-size:11px;color:var(--ink2);padding:6px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+ind+'">'+ind+'</div>';
+    heatData[ind].forEach(function(val){
+      var alpha=val>0?(0.12+((val/maxH)*0.88)):0.04;
+      var bg='rgba(200,16,46,'+alpha.toFixed(2)+')';
+      var tc=alpha>0.5?'#fff':'var(--ink3)';
+      hm+='<div style="background:'+bg+';padding:8px 4px;text-align:center;font-size:10px;color:'+tc+'" data-tip="'+ind+': '+val+'">'+val+'</div>';
+    });
+  });
+  hm+='</div>';
+  document.getElementById('heatmap-area').innerHTML=hm;
+
+  // ── Volume chart ──
+  var days={};
+  for(var d=29;d>=0;d--){var dt=new Date(now.getTime()-d*24*60*60*1000);days[(dt.getMonth()+1)+'/'+dt.getDate()]=0;}
+  rows.forEach(function(r){
+    var dt=new Date(r[0]);if(isNaN(dt.getTime()))return;
+    var diff=Math.floor((now-dt)/(24*60*60*1000));
+    if(diff>=0&&diff<30){var k=(dt.getMonth()+1)+'/'+dt.getDate();if(days[k]!==undefined)days[k]++;}
+  });
+  var dk=Object.keys(days);
+  makeChart('volume-chart','line',dk,[{
+    data:dk.map(function(k){return days[k];}),
+    borderColor:'#1A1714',backgroundColor:'rgba(26,23,20,0.06)',
+    tension:.4,fill:true,pointRadius:2,pointHoverRadius:4,
+    pointBackgroundColor:'#C8102E',borderWidth:1.5
+  }],{
+    plugins:{legend:{display:false}},
+    scales:{
+      x:{ticks:{color:'#8A8580',font:{size:9,family:'JetBrains Mono'},maxTicksLimit:8},grid:{color:'#E8E3DC',lineWidth:.5}},
+      y:{ticks:{color:'#8A8580',font:{size:9,family:'JetBrains Mono'}},grid:{color:'#E8E3DC',lineWidth:.5},beginAtZero:true}
+    }
+  });
+
+  // ── Seniority ──
+  var senMap={Founder:0,CEO:0,CTO:0,CMO:0,Director:0,Manager:0,VP:0,'Head of':0,Owner:0,Partner:0};
+  rows.forEach(function(r){
+    var h=(v(r,C.headline)+' '+v(r,C.jobTitle)).toLowerCase();
+    Object.keys(senMap).forEach(function(k){if(h.indexOf(k.toLowerCase())>-1)senMap[k]++;});
+  });
+  var senKeys=Object.keys(senMap).filter(function(k){return senMap[k]>0;}).sort(function(a,b){return senMap[b]-senMap[a];}).slice(0,7);
+  var maxSen=senKeys.length?senMap[senKeys[0]]:1;
+  document.getElementById('seniority-bars').innerHTML=senKeys.map(function(k,i){
+    return makeEBar(i+1,k,senMap[k],maxSen,indColors[i%indColors.length]);
+  }).join('');
+
+  // ── Job titles ──
+  var jtC=countBy(rows,C.jobTitle);
+  var topJT=topN(jtC,7);
+  var maxJT=topJT.length?jtC[topJT[0]]:1;
+  document.getElementById('jobtitle-bars').innerHTML=topJT.map(function(t,i){
+    return makeEBar(i+1,t,jtC[t],maxJT,indColors[i%indColors.length]);
+  }).join('');
+
+  // ── Company stage ──
+  var ages=rows.map(function(r){return num(v(r,C.coFounded));}).filter(function(y){return y>1900;});
+  var avgAge=ages.length?Math.round(ages.reduce(function(a,b){return a+b;},0)/ages.length):0;
+  var young=ages.filter(function(y){return y>=2020;}).length;
+  var mid=ages.filter(function(y){return y>=2015&&y<2020;}).length;
+  var est=ages.filter(function(y){return y<2015;}).length;
+  var funded2=rows.filter(function(r){var f=v(r,C.coFundingAmt);return f&&f!=='—'&&f!=='0';}).length;
+  var staffArr=rows.map(function(r){return num(v(r,C.coStaffCount));}).filter(function(s){return s>0;});
+  var avgStaff=staffArr.length?Math.round(staffArr.reduce(function(a,b){return a+b;},0)/staffArr.length):0;
+
+  document.getElementById('company-stage-stats').innerHTML=[
+    {l:'Avg founding year',v:avgAge||'—'},
+    {l:'Startups (2020+)',v:young},
+    {l:'Growth stage (2015–19)',v:mid},
+    {l:'Established (<2015)',v:est},
+    {l:'Avg headcount',v:avgStaff?avgStaff.toLocaleString():'—'},
+    {l:'Funded companies',v:funded2+' ('+pct(funded2,total)+')'},
+  ].map(function(m){
+    return '<div class="stat-row"><div class="stat-label">'+m.l+'</div><div class="stat-val">'+m.v+'</div></div>';
+  }).join('');
+
+  makeChart('funding-chart','doughnut',['Funded','Bootstrapped'],[{
+    data:[funded2,total-funded2],
+    backgroundColor:['#1A1714','#E8E3DC'],
+    borderColor:['#1A1714','#D0C9C0'],borderWidth:1,hoverOffset:4
+  }],{
+    plugins:{legend:{display:true,position:'bottom',labels:{color:'#4A4540',font:{size:10,family:'JetBrains Mono'},boxWidth:10,padding:10}}},
+    cutout:'60%'
+  });
+
+  // ── Company size ──
+  var szC=countBy(rows,C.companySize);
+  var topSz=topN(szC,7);
+  var maxSz=topSz.length?szC[topSz[0]]:1;
+  document.getElementById('size-bars').innerHTML=topSz.map(function(s,i){
+    return makeEBar(i+1,s,szC[s],maxSz,indColors[i%indColors.length]);
+  }).join('');
+
+  // ── Languages ──
+  var lgC=countBy(rows,C.languages);
+  var topLg=topN(lgC,5);
+  var maxLg=topLg.length?lgC[topLg[0]]:1;
+  document.getElementById('lang-bars').innerHTML=topLg.map(function(l,i){
+    return makeEBar(i+1,l,lgC[l],maxLg,indColors[i%indColors.length]);
+  }).join('');
+
+  // ── Education ──
+  var edC=countBy(rows,C.lastEdu);
+  var topEd=topN(edC,5);
+  var maxEd=topEd.length?edC[topEd[0]]:1;
+  document.getElementById('edu-bars').innerHTML=topEd.map(function(e,i){
+    return makeEBar(i+1,e,edC[e],maxEd,indColors[i%indColors.length]);
+  }).join('');
+
+  // ── Geography ──
+  var cntryRate={};
+  rows.forEach(function(r){
+    var c=v(r,C.country);if(!c||c==='—')return;
+    if(!cntryRate[c])cntryRate[c]={t:0,l:0};
+    cntryRate[c].t++;
+    if(r[C.status]==='Lead')cntryRate[c].l++;
+  });
+  var topC=topN(countryCounts,10);
+  var maxC=topC.length?countryCounts[topC[0]]:1;
+  var bestC=Object.keys(cntryRate).filter(function(k){return cntryRate[k].t>=2;})
+    .sort(function(a,b){return (cntryRate[b].l/cntryRate[b].t)-(cntryRate[a].l/cntryRate[a].t);})[0];
+
+  var twCountries={};thisWeek.forEach(function(r){var c=v(r,C.country);if(c&&c!=='—')twCountries[c]=(twCountries[c]||0)+1;});
+  var lwCountries={};lastWeek.forEach(function(r){var c=v(r,C.country);if(c&&c!=='—')lwCountries[c]=(lwCountries[c]||0)+1;});
+  var newMarkets=Object.keys(twCountries).filter(function(c){return !lwCountries[c];}).length;
+
+  document.getElementById('geo-quote-text').textContent=
+    topC[0]+' dominates with '+countryCounts[topC[0]]+' posts — '+pct(countryCounts[topC[0]],total)+' of all market activity this period.';
+  document.getElementById('geo-quote-cite').textContent='Geographic concentration analysis · '+total+' posts';
+  document.getElementById('geo-countries').textContent=uniqueC+' countries';
+  document.getElementById('geo-top').textContent=topC[0]||'—';
+  document.getElementById('geo-best-rate').textContent=bestC?(bestC+' — '+pct(cntryRate[bestC].l,cntryRate[bestC].t)):'—';
+  document.getElementById('geo-new').textContent=newMarkets+' new markets';
+
+  document.getElementById('geo-table-body').innerHTML=topC.map(function(c){
+    var d=cntryRate[c]||{t:countryCounts[c],l:0};
+    var rate=Math.round(d.l/d.t*100);
+    var barW=Math.round(countryCounts[c]/maxC*100);
+    return '<tr>'+
+      '<td>'+c+'</td>'+
+      '<td class="num">'+countryCounts[c]+'</td>'+
+      '<td class="num">'+d.l+'</td>'+
+      '<td class="rate" style="color:'+(rate>=20?'var(--green)':rate>=10?'var(--amber)':'var(--ink3)')+'">'+rate+'%</td>'+
+      '<td><div style="width:'+(barW)+'px;height:4px;background:var(--accent);display:inline-block"></div></td>'+
+      '</tr>';
+  }).join('');
+
+  // ── Researchers ──
+  var resD={};
+  rows.forEach(function(r){
+    var res=v(r,C.submittedBy);if(!res)return;
+    if(!resD[res])resD[res]={t:0,l:0};
+    resD[res].t++;
+    if(r[C.status]==='Lead')resD[res].l++;
+  });
+  var topRes=Object.keys(resD).sort(function(a,b){return resD[b].t-resD[a].t;}).slice(0,10);
+  var maxResT=topRes.length?resD[topRes[0]].t:1;
+  document.getElementById('researcher-body').innerHTML=topRes.map(function(res,i){
+    var d=resD[res];
+    var rate=Math.round(d.l/d.t*100);
+    var bw=Math.round(d.t/maxResT*80);
+    return '<tr>'+
+      '<td><div class="res-name">'+(i+1)+'. '+res+'</div></td>'+
+      '<td class="res-num">'+d.t+'</td>'+
+      '<td class="res-num" style="color:var(--green)">'+d.l+'</td>'+
+      '<td class="res-rate" style="color:'+(rate>=20?'var(--green)':rate>=10?'var(--amber)':'var(--ink3)')+'">'+rate+'%</td>'+
+      '<td><div class="res-bar-track"><div class="res-bar-fill" style="width:'+bw+'px"></div></div></td>'+
+      '</tr>';
+  }).join('');
+
+  // ── Data quality ──
+  var enriched=rows.filter(function(r){return v(r,C.enrichStatus).toLowerCase().indexOf('success')>-1;}).length;
+  var coEnriched=rows.filter(function(r){return v(r,C.enrichCoStatus).toLowerCase().indexOf('success')>-1;}).length;
+  var fields=[
+    {l:'Profile enrichment',n:enriched},{l:'Company enrichment',n:coEnriched},
+    {l:'Has country',n:rows.filter(function(r){return v(r,C.country)&&v(r,C.country)!=='—';}).length},
+    {l:'Has industry',n:rows.filter(function(r){return v(r,C.industry)&&v(r,C.industry)!=='—';}).length},
+    {l:'Has job title',n:rows.filter(function(r){return v(r,C.jobTitle)&&v(r,C.jobTitle)!=='—';}).length},
+    {l:'Has company size',n:rows.filter(function(r){return v(r,C.companySize)&&v(r,C.companySize)!=='—';}).length},
+  ];
+  document.getElementById('quality-stats').innerHTML=fields.map(function(f){
+    var rate=Math.round(f.n/total*100);
+    var color=rate>=80?'var(--green)':rate>=50?'var(--amber)':'var(--accent)';
+    return '<div class="stat-row">'+
+      '<div class="stat-label">'+f.l+'</div>'+
+      '<div style="display:flex;align-items:center;gap:8px">'+
+      '<span style="font-family:var(--mono);font-size:11px;color:var(--ink3)">'+f.n+'/'+total+'</span>'+
+      '<span class="stat-badge" style="color:'+color+';border-color:'+color+'">'+rate+'%</span>'+
+      '</div></div>';
+  }).join('');
+}
+
+// ── sample data ──
+function getSample(){
+  var industries=['Technology','Financial Services','Healthcare','Marketing','Legal','Consulting','Design','Real Estate'];
+  var countries=['United States','United Kingdom','India','Canada','Australia','Germany','France','Singapore'];
+  var statuses=['Lead','Lead','Pending','Pending','Pending','Not a lead'];
+  var researchers=['Vaibhav Kedia','Simran','Vinay Sharma','Arnab','Kritika','Ayush'];
+  var titles=['Founder','CEO','CTO','Director','VP Engineering','Head of Product','Manager','Co-founder'];
+  var sizes=['1-10','11-50','51-200','201-500','1001-5000'];
+  var keywords=['developer','designer','accountant','lawyer','consultant','engineer','plumber','electrician','contractor','marketing','finance','legal','healthcare','recruitment'];
+  var data=[];
+  for(var i=0;i<180;i++){
+    var daysAgo=Math.floor(Math.random()*30);
+    var dt=new Date(Date.now()-daysAgo*24*60*60*1000);
+    var kw=keywords[Math.floor(Math.random()*keywords.length)];
+    data.push({
+      'Timestamp':dt.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+', '+('0'+dt.getHours()).slice(-2)+':'+('0'+dt.getMinutes()).slice(-2)+' AM',
+      'Submitted by':researchers[Math.floor(Math.random()*researchers.length)],
+      'Post URL':'linkedin.com/posts/'+i,
+      'Person name':'Person '+i,
+      'Country':countries[Math.floor(Math.random()*countries.length)],
+      'Company':'Company '+i,
+      'Company size':sizes[Math.floor(Math.random()*sizes.length)],
+      'Industry':industries[Math.floor(Math.random()*industries.length)],
+      'Status':statuses[Math.floor(Math.random()*statuses.length)],
+      'Post content':'Looking for a '+kw+' to help with our '+(Math.random()>0.5?'growing':'new')+' business needs urgently',
+      'job title (linkedin)':titles[Math.floor(Math.random()*titles.length)],
+      'headline (linkedin)':titles[Math.floor(Math.random()*titles.length)]+' at Company '+i,
+      'languages (linkedin)':Math.random()>0.5?'English':'English, Spanish',
+      'last education (linkedin)':Math.random()>0.5?'Harvard University':'MIT',
+      'Company foundedOn (enrich company)':String(2010+Math.floor(Math.random()*14)),
+      'Company staff count (enrich company)':String(Math.floor(Math.random()*500)+5),
+      'Company followers (enrich company)':String(Math.floor(Math.random()*50000)+100),
+      'Company last funding money raised (enrich company)':Math.random()>0.6?String(Math.floor(Math.random()*5000000)+100000):'—',
+      'enrich profiles status':Math.random()>0.3?'success':'pending',
+      'enrich company status':Math.random()>0.4?'success':'pending',
+    });
+  }
+  return parseRows(data);
+}
+
+// v3 - CSV direct load
+console.log('Dashboard v3 loaded');
+loadData();
+</script>
+</body>
+</html>
