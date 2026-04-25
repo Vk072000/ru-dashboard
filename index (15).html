@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Market Intelligence — recommend-us</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400;1,700&family=Source+Serif+4:opsz,wght@8..60,300;8..60,400;8..60,500&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#1A1714;--ink2:#4A4540;--ink3:#8A8580;--ink4:#C5C0BB;
+  --bg:#F8F7F3;--white:#FFFFFF;--rule:#E2DDD6;--rule2:#C8C0B5;
+  --red:#C8102E;--red2:#A00D25;--red-light:#FDF0F2;
+  --blue:#1B4F8A;--blue-light:#EBF2FA;
+  --green:#1A6B3C;--green-light:#EBF5EF;
+  --amber:#9B5309;--amber-light:#FDF5E8;
+  --purple:#5B2D8A;--purple-light:#F2EDF8;
+  --display:'Playfair Display',Georgia,serif;
+  --body:'Source Serif 4',Georgia,serif;
+  --mono:'JetBrains Mono',monospace;
+}
+html{font-size:15px;scroll-behavior:smooth}
+body{font-family:var(--body);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;min-height:100vh}
+
+/* ── masthead ── */
+.masthead{background:var(--ink);border-bottom:4px solid var(--red)}
+.masthead-inner{max-width:1300px;margin:0 auto;padding:20px 40px;display:flex;align-items:center;justify-content:space-between}
+.masthead-left{display:flex;flex-direction:column;gap:3px}
+.masthead-eyebrow{font-family:var(--mono);font-size:9px;color:rgba(255,255,255,.4);letter-spacing:.2em;text-transform:uppercase}
+.masthead-name{font-family:var(--display);font-size:28px;font-weight:700;color:var(--white);letter-spacing:-.01em}
+.masthead-name em{color:var(--red);font-style:italic}
+.masthead-right{display:flex;align-items:center;gap:20px}
+.masthead-date{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.4);letter-spacing:.08em;text-align:right}
+.refresh-btn{padding:6px 16px;border:1px solid rgba(255,255,255,.2);background:transparent;color:rgba(255,255,255,.6);font-family:var(--mono);font-size:10px;cursor:pointer;letter-spacing:.08em;text-transform:uppercase;transition:all .15s}
+.refresh-btn:hover{border-color:rgba(255,255,255,.5);color:#fff}
+
+/* ── page ── */
+.page{max-width:1300px;margin:0 auto;padding:0 40px 80px}
+
+/* ── summary numbers ── */
+.summary{display:grid;grid-template-columns:repeat(6,1fr);border-top:2px solid var(--ink);border-bottom:1px solid var(--rule);margin:32px 0 0}
+.sum-cell{padding:18px 0;border-right:1px solid var(--rule)}
+.sum-cell:first-child{padding-left:0}
+.sum-cell:last-child{border-right:none}
+.sum-label{font-family:var(--mono);font-size:8px;color:var(--ink3);letter-spacing:.12em;text-transform:uppercase;margin-bottom:6px;padding:0 16px}
+.sum-cell:first-child .sum-label{padding-left:0}
+.sum-val{font-family:var(--display);font-size:38px;font-weight:700;color:var(--ink);line-height:1;letter-spacing:-.02em;padding:0 16px}
+.sum-cell:first-child .sum-val{padding-left:0}
+.sum-val.red{color:var(--red)}
+.sum-val.blue{color:var(--blue)}
+.sum-val.green{color:var(--green)}
+.sum-val.amber{color:var(--amber)}
+.sum-sub{font-family:var(--body);font-size:11px;color:var(--ink3);font-style:italic;margin-top:4px;padding:0 16px}
+.sum-cell:first-child .sum-sub{padding-left:0}
+
+/* ── section divider ── */
+.sec-divider{display:flex;align-items:baseline;justify-content:space-between;border-top:3px solid var(--ink);padding-top:10px;margin-top:48px;margin-bottom:24px}
+.sec-title{font-family:var(--display);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.18em;color:var(--ink)}
+.sec-note{font-family:var(--mono);font-size:9px;color:var(--ink3);letter-spacing:.08em}
+
+/* ── layout grids ── */
+.col-2{display:grid;grid-template-columns:1fr 1fr;gap:48px}
+.col-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:40px}
+.col-1-2{display:grid;grid-template-columns:1fr 2fr;gap:48px}
+.col-2-1{display:grid;grid-template-columns:2fr 1fr;gap:48px}
+
+/* ── chart block ── */
+.chart-block{margin-bottom:40px}
+.chart-label{font-family:var(--display);font-size:15px;font-weight:700;color:var(--ink);margin-bottom:3px}
+.chart-sub{font-family:var(--body);font-size:11px;color:var(--ink3);font-style:italic;padding-bottom:12px;border-bottom:1px solid var(--rule);margin-bottom:16px}
+
+/* ── editorial bars ── */
+.ebar{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--rule)}
+.ebar:last-child{border-bottom:none}
+.ebar-rank{font-family:var(--mono);font-size:9px;color:var(--ink4);width:14px;text-align:right;flex-shrink:0}
+.ebar-label{font-family:var(--body);font-size:13px;color:var(--ink);min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ebar-track{width:100px;height:6px;background:var(--rule);flex-shrink:0;position:relative;overflow:hidden}
+.ebar-fill{height:100%;position:absolute;left:0;top:0;transition:width 1s cubic-bezier(.23,1,.32,1)}
+.ebar-val{font-family:var(--mono);font-size:11px;color:var(--ink2);min-width:32px;text-align:right;flex-shrink:0}
+.ebar-pct{font-family:var(--mono);font-size:10px;color:var(--ink3);min-width:38px;text-align:right;flex-shrink:0}
+
+/* ── big keyword bars ── */
+.kw-bar{display:flex;align-items:center;gap:16px;padding:10px 0;border-bottom:1px solid var(--rule)}
+.kw-bar:last-child{border-bottom:none}
+.kw-word{font-family:var(--display);font-size:18px;font-weight:700;color:var(--ink);font-style:italic;min-width:140px}
+.kw-track{flex:1;height:10px;background:var(--rule);position:relative;overflow:hidden}
+.kw-fill{height:100%;position:absolute;left:0;top:0;background:var(--ink);transition:width 1.2s cubic-bezier(.23,1,.32,1)}
+.kw-count{font-family:var(--mono);font-size:11px;color:var(--ink3);min-width:40px;text-align:right}
+.kw-arrow{font-family:var(--mono);font-size:11px;min-width:20px;text-align:right}
+
+/* ── signal cards ── */
+.signals{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule);margin-bottom:40px}
+.signal{background:var(--white);padding:18px}
+.signal-type{font-family:var(--mono);font-size:8px;color:var(--ink3);letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px}
+.signal-val{font-family:var(--display);font-size:24px;font-weight:700;color:var(--red);margin-bottom:6px;line-height:1}
+.signal-label{font-family:var(--display);font-size:13px;font-weight:700;color:var(--ink);margin-bottom:4px}
+.signal-body{font-family:var(--body);font-size:12px;color:var(--ink2);line-height:1.5;font-style:italic}
+
+/* ── heatmap ── */
+.heatmap-wrap{display:grid;gap:3px}
+.hm-row{display:grid;gap:3px}
+.hm-cell{height:28px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;border-radius:1px;cursor:default;transition:opacity .15s}
+.hm-cell:hover{opacity:.75}
+.hm-label{font-family:var(--mono);font-size:9px;color:var(--ink3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center}
+
+/* ── geo table ── */
+.geo-table{width:100%;border-collapse:collapse}
+.geo-table th{font-family:var(--mono);font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);text-align:left;padding:7px 0;border-bottom:2px solid var(--ink)}
+.geo-table td{padding:9px 0;border-bottom:1px solid var(--rule);vertical-align:middle}
+.geo-name{font-family:var(--body);font-size:13px;color:var(--ink)}
+.geo-num{font-family:var(--mono);font-size:12px;text-align:right;color:var(--ink2)}
+.geo-rate{font-family:var(--mono);font-size:11px;text-align:right;font-weight:500}
+.geo-bar-cell{width:80px}
+.geo-mini{height:4px;background:var(--red);display:inline-block}
+
+/* ── pull quote ── */
+.pullquote{border-left:3px solid var(--red);padding-left:18px;margin-bottom:24px}
+.pullquote p{font-family:var(--display);font-size:17px;font-style:italic;color:var(--ink);line-height:1.45}
+.pullquote cite{font-family:var(--mono);font-size:9px;color:var(--ink3);letter-spacing:.1em;text-transform:uppercase;display:block;margin-top:8px}
+
+/* ── stat rows ── */
+.stat-row{display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--rule)}
+.stat-row:last-child{border-bottom:none}
+.stat-label{font-family:var(--body);font-size:13px;color:var(--ink2)}
+.stat-val{font-family:var(--mono);font-size:12px;color:var(--ink);font-weight:500}
+.badge{font-family:var(--mono);font-size:9px;padding:2px 7px;border:1px solid currentColor;display:inline-block}
+.badge-green{color:var(--green)}
+.badge-amber{color:var(--amber)}
+.badge-red{color:var(--red)}
+
+/* ── res table ── */
+.res-table{width:100%;border-collapse:collapse}
+.res-table th{font-family:var(--mono);font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);text-align:left;padding:7px 0;border-bottom:2px solid var(--ink)}
+.res-table td{padding:9px 0;border-bottom:1px solid var(--rule);vertical-align:middle}
+.res-name{font-family:var(--body);font-size:13px;color:var(--ink);font-weight:500}
+.res-num{font-family:var(--mono);font-size:12px;text-align:right;color:var(--ink2)}
+.res-bar{height:5px;background:var(--ink);display:inline-block;vertical-align:middle}
+
+/* ── footer ── */
+.footer{border-top:1px solid var(--rule);margin-top:64px;padding-top:16px;font-family:var(--mono);font-size:9px;color:var(--ink4);letter-spacing:.06em;text-align:center}
+
+/* ── loading overlay ── */
+#loader{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px}
+.loader-title{font-family:var(--display);font-size:24px;font-style:italic;color:var(--ink)}
+.loader-bar{width:280px;height:1px;background:var(--rule2)}
+.loader-fill{height:1px;background:var(--red);animation:ld 1.8s ease-in-out forwards}
+@keyframes ld{from{width:0}to{width:280px}}
+.loader-msg{font-family:var(--mono);font-size:10px;color:var(--ink3);letter-spacing:.1em;text-transform:uppercase}
+
+canvas{max-width:100%}
+</style>
+</head>
+<body>
+
+<div id="loader">
+  <div class="loader-title">Compiling market intelligence…</div>
+  <div class="loader-bar"><div class="loader-fill"></div></div>
+  <div class="loader-msg" id="loader-msg">Connecting to data</div>
+</div>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <div class="masthead-left">
+      <div class="masthead-eyebrow">Intelligence Division</div>
+      <div class="masthead-name">The <em>LinkedIn Market</em> Intelligence Report</div>
+    </div>
+    <div class="masthead-right">
+      <div class="masthead-date" id="report-date">—</div>
+      <button class="refresh-btn" onclick="init()">↻ Refresh</button>
+    </div>
+  </div>
+</header>
+
+<div class="page">
+
+  <!-- Summary numbers -->
+  <div class="summary" id="summary">
+    <div class="sum-cell"><div class="sum-label">Posts collected</div><div class="sum-val red" id="s-total">—</div><div class="sum-sub" id="s-total-s">—</div></div>
+    <div class="sum-cell"><div class="sum-label">Leads identified</div><div class="sum-val" id="s-leads">—</div><div class="sum-sub" id="s-leads-s">—</div></div>
+    <div class="sum-cell"><div class="sum-label">Conversion rate</div><div class="sum-val blue" id="s-conv">—</div><div class="sum-sub" id="s-conv-s">—</div></div>
+    <div class="sum-cell"><div class="sum-label">Markets tracked</div><div class="sum-val amber" id="s-markets">—</div><div class="sum-sub" id="s-markets-s">—</div></div>
+    <div class="sum-cell"><div class="sum-label">Sectors active</div><div class="sum-val green" id="s-sectors">—</div><div class="sum-sub" id="s-sectors-s">—</div></div>
+    <div class="sum-cell"><div class="sum-label">Week growth</div><div class="sum-val" id="s-growth">—</div><div class="sum-sub" id="s-growth-s">—</div></div>
+  </div>
+
+  <!-- I. DEMAND SIGNALS -->
+  <div class="sec-divider"><div class="sec-title">I. Market Demand Signals</div><div class="sec-note">Where real pain is happening right now</div></div>
+
+  <div class="col-2-1">
+    <div>
+      <div class="chart-block">
+        <div class="chart-label">Trending keywords</div>
+        <div class="chart-sub">Words appearing most in service-seeking posts, with week-on-week trend</div>
+        <div id="kw-bars"></div>
+      </div>
+    </div>
+    <div>
+      <div class="signals" style="grid-template-columns:1fr 1fr;margin-bottom:24px" id="signal-grid"></div>
+      <div class="chart-block">
+        <div class="chart-label">Key metrics</div>
+        <div class="chart-sub">Content analysis</div>
+        <div id="demand-stats"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- II. INDUSTRY TRENDS -->
+  <div class="sec-divider"><div class="sec-title">II. Industry Trends</div><div class="sec-note">Which sectors are heating up or cooling down</div></div>
+
+  <div class="col-2">
+    <div>
+      <div class="chart-block">
+        <div class="chart-label">Industry volume</div>
+        <div class="chart-sub">Posts by sector, ranked by activity</div>
+        <div id="ind-bars"></div>
+      </div>
+    </div>
+    <div>
+      <div class="chart-block">
+        <div class="chart-label">Lead conversion by industry</div>
+        <div class="chart-sub">Which sectors convert from post to qualified lead</div>
+        <div id="ind-conv-bars"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-2" style="margin-top:32px">
+    <div>
+      <div class="chart-block">
+        <div class="chart-label">30-day volume trend</div>
+        <div class="chart-sub">Daily post submissions by your research team</div>
+        <canvas id="volume-chart" height="160"></canvas>
+      </div>
+    </div>
+    <div>
+      <div class="chart-block">
+        <div class="chart-label">Weekly industry heatmap</div>
+        <div class="chart-sub">Activity intensity across 6 weeks — darker = more active</div>
+        <div id="heatmap"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- III. WHO IS ASKING -->
+  <div class="sec-divider"><div class="sec-title">III. Who Is Asking</div><div class="sec-note">Seniority, company stage, profile of service-seekers</div></div>
+
+  <div class="col-3">
+    <div>
+      <div class="chart-block">
+        <div class="chart-label">Seniority signals</div>
+        <div class="chart-sub">Who is posting service requests</div>
+        <div id="sen-bars"></div>
+      </div>
+    </div>
+    <div>
+      <div class="chart-block">
+        <div class="chart-label">Top job titles</div>
+        <div class="chart-sub">Most common roles making requests</div>
+        <div id="jt-bars"></div>
+      </div>
+    </div>
+    <div>
+      <div class="chart-block">
+        <div class="chart-label">Company stage</div>
+        <div class="chart-sub">Age, size and funding profile</div>
+        <div id="stage-stats"></div>
+        <canvas id="funding-chart" height="140" style="margin-top:16px"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-2" style="margin-top:32px">
+    <div>
+      <div class="chart-block">
+        <div class="chart-label">Company size</div>
+        <div class="chart-sub">Staff count of companies seeking services</div>
+        <div id="size-bars"></div>
+      </div>
+    </div>
+    <div>
+      <div class="chart-block">
+        <div class="chart-label">Languages & education</div>
+        <div class="chart-sub">Profile of service-seekers</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px">Languages</div>
+        <div id="lang-bars"></div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--ink3);letter-spacing:.1em;text-transform:uppercase;margin:20px 0 8px">Education</div>
+        <div id="edu-bars"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- IV. GEOGRAPHY -->
+  <div class="sec-divider"><div class="sec-title">IV. Geographic Intelligence</div><div class="sec-note">Where demand is concentrated and converting</div></div>
+
+  <div class="col-1-2">
+    <div>
+      <div class="pullquote" id="geo-quote"><p id="geo-quote-text">—</p><cite id="geo-quote-cite">—</cite></div>
+      <div id="geo-stats"></div>
+    </div>
+    <div>
+      <div class="chart-block">
+        <div class="chart-label">Market performance</div>
+        <div class="chart-sub">Countries ranked by volume with lead conversion rates</div>
+        <table class="geo-table">
+          <thead><tr><th>Market</th><th style="text-align:right">Posts</th><th style="text-align:right">Leads</th><th style="text-align:right">Rate</th><th class="geo-bar-cell"></th></tr></thead>
+          <tbody id="geo-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- V. RESEARCHERS -->
+  <div class="sec-divider"><div class="sec-title">V. Research Team Performance</div><div class="sec-note">Individual contribution and lead quality</div></div>
+
+  <div class="col-2-1">
+    <div>
+      <table class="res-table">
+        <thead><tr><th>#</th><th>Researcher</th><th style="text-align:right">Posts</th><th style="text-align:right">Leads</th><th style="text-align:right">Rate</th><th>Output</th></tr></thead>
+        <tbody id="res-body"></tbody>
+      </table>
+    </div>
+    <div>
+      <div class="chart-block">
+        <div class="chart-label">Data quality</div>
+        <div class="chart-sub">Enrichment completeness scores</div>
+        <div id="quality-stats"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer" id="footer">Data sourced from LinkedIn posts collected by the recommend-us research team · <span id="footer-date">—</span></div>
+</div>
+
+<script>
+var CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRv4c51jlLGhyJBDFOEoWgaxaikHqggFoERNizeFY8Zy0kZG-L3h3bgpkSMLxwHRiY3SHn7r-3mO2do/pub?gid=1373170532&single=true&output=csv';
+var charts = {};
+
+var C = {
+  timestamp:0,submittedBy:1,postUrl:2,personName:3,linkedinUrl:4,
+  postContent:5,country:6,company:7,companySize:8,industry:9,
+  status:10,message:11,opsNotes:12,
+  firstName:13,lastName:14,fullName:15,locationLI:16,headline:17,
+  summary:18,jobTitle:19,prevJobTitle:20,lastEdu:21,lastEduDates:22,
+  languages:23,id:24,publicUrl:25,companyNameLI:26,companyLIUrl:27,
+  companyId:28,enrichStatus:29,
+  coName:30,coUniversal:31,coWebsite:32,coLinkedin:33,coFounded:34,
+  coTagline:35,coStaffRange:36,coStaffCount:37,coPhone:38,coCountry:39,
+  coCity:40,coPostal:41,coStreet:42,coId:43,coHashtags:44,
+  coIndustries:45,coSpecialities:46,coDescription:47,coFollowers:48,
+  coFundingAmt:49,coFundingDate:50,enrichCoStatus:51
+};
+
+var HEADER_MAP = {
+  'Timestamp':0,'Submitted by':1,'Post URL':2,'Person name':3,'LinkedIn profile':4,
+  'Post content':5,'Country':6,'Company':7,'Company size':8,'Industry':9,
+  'Status':10,'Message to send':11,'Ops notes':12,
+  'firstname (linkedin)':13,'lastname (linkedin)':14,'fullname (linkedin)':15,
+  'location (linkedin)':16,'headline (linkedin)':17,'summary (linkedin)':18,
+  'job title (linkedin)':19,'previous job title (linkedin)':20,
+  'last education (linkedin)':21,'last education dates (linkedin)':22,
+  'languages (linkedin)':23,'id (linkedin)':24,'public profile url (linkedin)':25,
+  'company name (linkedin)':26,'company linkedin url (linkedin)':27,
+  'company id (linkedin)':28,'enrich profiles status':29,
+  'Company name (enrich company)':30,'Company universal name (enrich company)':31,
+  'Company website (enrich company)':32,'Company linkedinUrl (enrich company)':33,
+  'Company foundedOn (enrich company)':34,'Company tagline (enrich company)':35,
+  'Company staff count range (enrich company)':36,'Company staff count (enrich company)':37,
+  'Company phone number (enrich company)':38,'Company country (enrich company)':39,
+  'Company city (enrich company)':40,'Company postal code (enrich company)':41,
+  'Company street adress (enrich company)':42,'Company id (enrich company)':43,
+  'Company associated hashtags (enrich company)':44,'Company industries (enrich company)':45,
+  'Company specialities (enrich company)':46,'Company description (enrich company)':47,
+  'Company followers (enrich company)':48,'Company last funding money raised (enrich company)':49,
+  'Company last funding announced on (enrich company)':50,'enrich company status':51
+};
+
+function v(r,c){return (r[c]||'').toString().trim();}
+function pct(n,d){return d>0?Math.round(n/d*100)+'%':'0%';}
+function num(s){return parseInt(s)||0;}
+
+function countBy(rows,col){
+  var c={};
+  rows.forEach(function(r){var k=v(r,col);if(k&&k!=='—'&&k!=='')c[k]=(c[k]||0)+1;});
+  return c;
+}
+function topN(obj,n){
+  return Object.keys(obj).filter(function(k){return k&&k!=='—';})
+    .sort(function(a,b){return obj[b]-obj[a];}).slice(0,n);
+}
+
+function parseCSV(text){
+  var lines=text.split(/\r?\n/).filter(function(l){return l.trim();});
+  if(lines.length<2)return[];
+  function splitLine(line){
+    var res=[],cur='',inQ=false;
+    for(var i=0;i<line.length;i++){
+      var c=line[i];
+      if(c==='"'){inQ=!inQ;}
+      else if(c===','&&!inQ){res.push(cur.replace(/^"|"$/g,'').trim());cur='';}
+      else{cur+=c;}
+    }
+    res.push(cur.replace(/^"|"$/g,'').trim());
+    return res;
+  }
+  var headers=splitLine(lines[0]);
+  return lines.slice(1).map(function(line){
+    var vals=splitLine(line);
+    var row=new Array(60).fill('');
+    headers.forEach(function(h,i){
+      var idx=HEADER_MAP[h];
+      if(idx!==undefined&&vals[i])row[idx]=vals[i];
+    });
+    return row;
+  }).filter(function(r){return r[0];});
+}
+
+function mkChart(id,type,labels,datasets,opts){
+  var ctx=document.getElementById(id);
+  if(!ctx)return;
+  if(charts[id])charts[id].destroy();
+  charts[id]=new Chart(ctx,{
+    type:type,data:{labels:labels,datasets:datasets},
+    options:Object.assign({responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},scales:{}},opts||{})
+  });
+}
+
+function ebar(rank,label,val,maxVal,color,extra){
+  var w=maxVal>0?Math.round(val/maxVal*100):0;
+  return '<div class="ebar">'+
+    '<div class="ebar-rank">'+rank+'</div>'+
+    '<div class="ebar-label" title="'+label+'">'+label+'</div>'+
+    '<div class="ebar-track"><div class="ebar-fill" style="width:'+w+'%;background:'+color+'"></div></div>'+
+    '<div class="ebar-val">'+val+'</div>'+
+    (extra?'<div class="ebar-pct">'+extra+'</div>':'')+
+    '</div>';
+}
+
+async function init(){
+  document.getElementById('loader').style.display='flex';
+  document.getElementById('loader-msg').textContent='FETCHING DATA...';
+  try{
+    var r=await fetch(CSV);
+    var text=await r.text();
+    document.getElementById('loader-msg').textContent='PROCESSING...';
+    var rows=parseCSV(text);
+    render(rows);
+  }catch(e){
+    console.error('fetch error',e);
+    document.getElementById('loader-msg').textContent='ERROR — '+e.message;
+    setTimeout(function(){document.getElementById('loader').style.display='none';},2000);
+    return;
+  }
+  document.getElementById('loader').style.display='none';
+}
+
+function render(rows){
+  var total=rows.length;
+  var now=new Date();
+  var today=now.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('report-date').innerHTML=today.toUpperCase()+'<br>recommend-us intelligence';
+  document.getElementById('footer-date').textContent=today;
+
+  var weekAgo=new Date(now-7*864e5);
+  var twoWkAgo=new Date(now-14*864e5);
+  var thisWeek=rows.filter(function(r){return new Date(r[0])>=weekAgo;});
+  var lastWeek=rows.filter(function(r){return new Date(r[0])>=twoWkAgo&&new Date(r[0])<weekAgo;});
+  var leads=rows.filter(function(r){return r[C.status]==='Lead';}).length;
+  var twLeads=thisWeek.filter(function(r){return r[C.status]==='Lead';}).length;
+  var lwLeads=lastWeek.filter(function(r){return r[C.status]==='Lead';}).length;
+  var wkG=lwLeads>0?Math.round((twLeads-lwLeads)/lwLeads*100):0;
+
+  var countryCounts=countBy(rows,C.country);
+  var indCounts=countBy(rows,C.industry);
+  var szCounts=countBy(rows,C.companySize);
+  var jtCounts=countBy(rows,C.jobTitle);
+  var lgCounts=countBy(rows,C.languages);
+  var edCounts=countBy(rows,C.lastEdu);
+
+  // Summary
+  document.getElementById('s-total').textContent=total.toLocaleString();
+  document.getElementById('s-total-s').textContent=thisWeek.length+' this week';
+  document.getElementById('s-leads').textContent=leads;
+  document.getElementById('s-leads-s').textContent=twLeads+' this week';
+  document.getElementById('s-conv').textContent=pct(leads,total);
+  document.getElementById('s-conv-s').textContent=pct(twLeads,thisWeek.length)+' this week';
+  document.getElementById('s-markets').textContent=Object.keys(countryCounts).length;
+  document.getElementById('s-markets-s').textContent='countries active';
+  document.getElementById('s-sectors').textContent=Object.keys(indCounts).length;
+  document.getElementById('s-sectors-s').textContent='industries tracked';
+  document.getElementById('s-growth').textContent=(wkG>=0?'+':'')+wkG+'%';
+  document.getElementById('s-growth-s').textContent='posts vs last week';
+
+  // Keywords
+  var stops='the and for are but not you all can was one our out day get has him his how its may new now old see two who did man men put say she too use a i to is in it of on at be as an we or if do no so up by my go me us he am im your their with have from this that they will been were what when then than just some into more also about would could should which there these those other after before because looking anyone people know need good great help please thanks thank hello hi hey post share like comment follow linkedin connect network reach out happy excited proud glad team work company business years year month week day time first last next back well even make take give come think want find way much many most best high low big small long short'.split(' ');
+  var wc={};
+  rows.forEach(function(r){v(r,C.postContent).toLowerCase().replace(/[^a-z\s]/g,' ').split(/\s+/).forEach(function(w){if(w.length>3&&stops.indexOf(w)===-1)wc[w]=(wc[w]||0)+1;});});
+  var twWc={};
+  thisWeek.forEach(function(r){v(r,C.postContent).toLowerCase().replace(/[^a-z\s]/g,' ').split(/\s+/).forEach(function(w){if(w.length>3&&stops.indexOf(w)===-1)twWc[w]=(twWc[w]||0)+1;});});
+  var lwWc={};
+  lastWeek.forEach(function(r){v(r,C.postContent).toLowerCase().replace(/[^a-z\s]/g,' ').split(/\s+/).forEach(function(w){if(w.length>3&&stops.indexOf(w)===-1)lwWc[w]=(lwWc[w]||0)+1;});});
+  var topW=topN(wc,12);var maxW=topW.length?wc[topW[0]]:1;
+
+  document.getElementById('kw-bars').innerHTML=topW.map(function(w){
+    var width=Math.round(wc[w]/maxW*100);
+    var up=(twWc[w]||0)>=(lwWc[w]||0);
+    return '<div class="kw-bar">'+
+      '<div class="kw-word">'+w+'</div>'+
+      '<div class="kw-track"><div class="kw-fill" style="width:'+width+'%"></div></div>'+
+      '<div class="kw-count">'+wc[w]+'</div>'+
+      '<div class="kw-arrow" style="color:'+(up?'var(--green)':'var(--ink3)')+'">'+( up?'↑':'↓')+'</div>'+
+      '</div>';
+  }).join('');
+
+  // Signal cards
+  var topInd=topN(indCounts,1)[0]||'—';
+  var topCntry=topN(countryCounts,1)[0]||'—';
+  var funded=rows.filter(function(r){var f=v(r,C.coFundingAmt);return f&&f!=='—'&&f!=='0';}).length;
+  var urgCount=rows.filter(function(r){return /asap|urgent|today|now|emergency/i.test(v(r,C.postContent));}).length;
+
+  document.getElementById('signal-grid').innerHTML=[
+    {type:'DEMAND SIGNAL',val:topInd,label:'Hottest sector',body:indCounts[topInd]+' posts · '+pct(indCounts[topInd],total)+' of all activity'},
+    {type:'GEO SIGNAL',val:topCntry,label:'Top geography',body:countryCounts[topCntry]+' posts from this market'},
+    {type:'FUNDING',val:funded+' cos',label:'Funded demand',body:pct(funded,total)+' have disclosed funding rounds'},
+    {type:'URGENCY',val:pct(urgCount,total),label:'Urgency rate',body:'Posts with high-urgency language'},
+  ].map(function(s){
+    return '<div class="signal">'+
+      '<div class="signal-type">'+s.type+'</div>'+
+      '<div class="signal-val">'+s.val+'</div>'+
+      '<div class="signal-label">'+s.label+'</div>'+
+      '<div class="signal-body">'+s.body+'</div>'+
+      '</div>';
+  }).join('');
+
+  var avgLen=Math.round(rows.reduce(function(s,r){return s+v(r,C.postContent).split(' ').length;},0)/total);
+  var locCount=rows.filter(function(r){return v(r,C.country)&&v(r,C.country)!=='—';}).length;
+  document.getElementById('demand-stats').innerHTML=[
+    {l:'Unique keywords tracked',v:Object.keys(wc).length.toLocaleString()},
+    {l:'Avg post length',v:avgLen+' words'},
+    {l:'Posts with location',v:pct(locCount,total)},
+    {l:'Urgency signals',v:pct(urgCount,total)},
+    {l:'This week posts',v:thisWeek.length},
+    {l:'Last week posts',v:lastWeek.length},
+  ].map(function(m){
+    return '<div class="stat-row"><div class="stat-label">'+m.l+'</div><div class="stat-val">'+m.v+'</div></div>';
+  }).join('');
+
+  // Industry bars
+  var topI=topN(indCounts,10);var maxI=topI.length?indCounts[topI[0]]:1;
+  var iColors=['#C8102E','#1B4F8A','#1A6B3C','#9B5309','#5B2D8A','#0A6B7A','#7A1A1A','#2D5B8A','#3A8A1A','#8A5B1A'];
+  document.getElementById('ind-bars').innerHTML=topI.map(function(ind,i){
+    return ebar(i+1,ind,indCounts[ind],maxI,iColors[i%iColors.length]);
+  }).join('');
+
+  // Industry conversion
+  var indRate={};
+  rows.forEach(function(r){
+    var i=v(r,C.industry);if(!i||i==='—')return;
+    if(!indRate[i])indRate[i]={t:0,l:0};
+    indRate[i].t++;
+    if(r[C.status]==='Lead')indRate[i].l++;
+  });
+  var indByConv=Object.keys(indRate).filter(function(k){return indRate[k].t>=2;})
+    .sort(function(a,b){return(indRate[b].l/indRate[b].t)-(indRate[a].l/indRate[a].t);}).slice(0,10);
+  document.getElementById('ind-conv-bars').innerHTML=indByConv.map(function(ind,i){
+    var rate=Math.round(indRate[ind].l/indRate[ind].t*100);
+    return ebar(i+1,ind,rate,100,'var(--green)',rate+'%');
+  }).join('');
+
+  // Volume chart
+  var days={};
+  for(var d=29;d>=0;d--){var dt=new Date(now-d*864e5);days[(dt.getMonth()+1)+'/'+dt.getDate()]=0;}
+  rows.forEach(function(r){
+    try{
+      if(!r[0])return;
+      var dt=new Date(r[0]);
+      if(!dt||isNaN(dt.getTime()))return;
+      var diff=Math.floor((now-dt)/864e5);
+      if(diff>=0&&diff<30){var k=(dt.getMonth()+1)+'/'+dt.getDate();if(days[k]!==undefined)days[k]++;}
+    }catch(e){}
+  });
+  var dk=Object.keys(days);
+  mkChart('volume-chart','line',dk,[{
+    data:dk.map(function(k){return days[k];}),
+    borderColor:'#C8102E',backgroundColor:'rgba(200,16,46,0.05)',
+    tension:.4,fill:true,pointRadius:2,pointHoverRadius:4,
+    pointBackgroundColor:'#C8102E',borderWidth:1.5
+  }],{
+    plugins:{legend:{display:false}},
+    scales:{
+      x:{ticks:{color:'#8A8580',font:{size:8,family:'JetBrains Mono'},maxTicksLimit:8},grid:{color:'#E2DDD6',lineWidth:.5}},
+      y:{ticks:{color:'#8A8580',font:{size:8,family:'JetBrains Mono'}},grid:{color:'#E2DDD6',lineWidth:.5},beginAtZero:true}
+    }
+  });
+
+  // Heatmap
+  var heatInds=topN(indCounts,6);
+  var heatWeeks=['5w','4w','3w','2w','1w','Now'];
+  var heatData={};
+  heatInds.forEach(function(ind){
+    heatData[ind]=[0,0,0,0,0,0];
+    rows.forEach(function(r){
+      try{
+        if(v(r,C.industry)!==ind)return;
+        if(!r[0])return;
+        var dt=new Date(r[0]);
+        if(!dt||isNaN(dt.getTime()))return;
+        var diff=Math.floor((now-dt)/(7*864e5));
+        if(diff>=0&&diff<6)heatData[ind][5-diff]++;
+      }catch(e){}
+    });
+  });
+  var allV=[];heatInds.forEach(function(ind){heatData[ind].forEach(function(x){allV.push(x);});});
+  var maxH=Math.max.apply(null,allV)||1;
+
+  var hm='<div style="display:grid;grid-template-columns:90px repeat(6,1fr);gap:3px">';
+  hm+='<div></div>';
+  heatWeeks.forEach(function(w){hm+='<div style="font-family:var(--mono);font-size:8px;color:var(--ink3);text-align:center;padding-bottom:6px;letter-spacing:.06em">'+w+'</div>';});
+  heatInds.forEach(function(ind){
+    hm+='<div class="hm-label" style="font-size:10px;padding:4px 0" title="'+ind+'">'+ind+'</div>';
+    heatData[ind].forEach(function(val){
+      var alpha=val>0?(0.1+(val/maxH)*0.9):0.04;
+      var bg='rgba(200,16,46,'+alpha.toFixed(2)+')';
+      var tc=alpha>0.5?'#fff':'var(--ink3)';
+      hm+='<div class="hm-cell" style="background:'+bg+';color:'+tc+'">'+val+'</div>';
+    });
+  });
+  hm+='</div>';
+  document.getElementById('heatmap').innerHTML=hm;
+
+  // Seniority
+  var senMap={Founder:0,CEO:0,CTO:0,Director:0,Manager:0,VP:0,Owner:0,Partner:0,'Head of':0};
+  rows.forEach(function(r){
+    var h=(v(r,C.headline)+' '+v(r,C.jobTitle)).toLowerCase();
+    Object.keys(senMap).forEach(function(k){if(h.indexOf(k.toLowerCase())>-1)senMap[k]++;});
+  });
+  var senKeys=Object.keys(senMap).filter(function(k){return senMap[k]>0;}).sort(function(a,b){return senMap[b]-senMap[a];});
+  var maxSen=senKeys.length?senMap[senKeys[0]]:1;
+  document.getElementById('sen-bars').innerHTML=senKeys.map(function(k,i){
+    return ebar(i+1,k,senMap[k],maxSen,'var(--purple)');
+  }).join('');
+
+  // Job titles
+  var topJT=topN(jtCounts,8);var maxJT=topJT.length?jtCounts[topJT[0]]:1;
+  document.getElementById('jt-bars').innerHTML=topJT.map(function(t,i){
+    return ebar(i+1,t,jtCounts[t],maxJT,'var(--blue)');
+  }).join('');
+
+  // Company stage
+  var ages=rows.map(function(r){return num(v(r,C.coFounded));}).filter(function(y){return y>1900;});
+  var avgAge=ages.length?Math.round(ages.reduce(function(a,b){return a+b;},0)/ages.length):0;
+  var staffArr=rows.map(function(r){return num(v(r,C.coStaffCount));}).filter(function(s){return s>0;});
+  var avgStaff=staffArr.length?Math.round(staffArr.reduce(function(a,b){return a+b;},0)/staffArr.length):0;
+  var fundedRows=rows.filter(function(r){var f=v(r,C.coFundingAmt);return f&&f!=='—'&&f!=='0';}).length;
+
+  document.getElementById('stage-stats').innerHTML=[
+    {l:'Avg founding year',v:avgAge||'—'},{l:'Startups (2020+)',v:ages.filter(function(y){return y>=2020;}).length},
+    {l:'Growth (2015–19)',v:ages.filter(function(y){return y>=2015&&y<2020;}).length},
+    {l:'Established (<2015)',v:ages.filter(function(y){return y<2015;}).length},
+    {l:'Avg headcount',v:avgStaff?avgStaff.toLocaleString():'—'},{l:'Funded',v:fundedRows+' ('+pct(fundedRows,total)+')'},
+  ].map(function(m){
+    return '<div class="stat-row"><div class="stat-label">'+m.l+'</div><div class="stat-val">'+m.v+'</div></div>';
+  }).join('');
+
+  mkChart('funding-chart','doughnut',['Funded','Bootstrapped'],[{
+    data:[fundedRows,total-fundedRows],
+    backgroundColor:['#1A1714','#E2DDD6'],borderColor:['#1A1714','#C8C0B5'],borderWidth:1,hoverOffset:4
+  }],{
+    plugins:{legend:{display:true,position:'bottom',labels:{color:'#4A4540',font:{size:9,family:'JetBrains Mono'},boxWidth:8,padding:10}}},
+    cutout:'62%'
+  });
+
+  // Company size
+  var topSz=topN(szCounts,7);var maxSz=topSz.length?szCounts[topSz[0]]:1;
+  document.getElementById('size-bars').innerHTML=topSz.map(function(s,i){
+    return ebar(i+1,s,szCounts[s],maxSz,'var(--amber)');
+  }).join('');
+
+  // Languages
+  var topLg=topN(lgCounts,6);var maxLg=topLg.length?lgCounts[topLg[0]]:1;
+  document.getElementById('lang-bars').innerHTML=topLg.map(function(l,i){
+    return ebar(i+1,l,lgCounts[l],maxLg,'var(--green)');
+  }).join('');
+
+  // Education
+  var topEd=topN(edCounts,5);var maxEd=topEd.length?edCounts[topEd[0]]:1;
+  document.getElementById('edu-bars').innerHTML=topEd.map(function(e,i){
+    return ebar(i+1,e,edCounts[e],maxEd,'var(--blue)');
+  }).join('');
+
+  // Geography
+  var cntryRate={};
+  rows.forEach(function(r){
+    var c=v(r,C.country);if(!c||c==='—')return;
+    if(!cntryRate[c])cntryRate[c]={t:0,l:0};
+    cntryRate[c].t++;
+    if(r[C.status]==='Lead')cntryRate[c].l++;
+  });
+  var topC=topN(countryCounts,12);var maxC=topC.length?countryCounts[topC[0]]:1;
+  var bestC=Object.keys(cntryRate).filter(function(k){return cntryRate[k].t>=2;})
+    .sort(function(a,b){return(cntryRate[b].l/cntryRate[b].t)-(cntryRate[a].l/cntryRate[a].t);})[0];
+
+  var twC={};thisWeek.forEach(function(r){var c=v(r,C.country);if(c&&c!=='—')twC[c]=(twC[c]||0)+1;});
+  var lwC={};lastWeek.forEach(function(r){var c=v(r,C.country);if(c&&c!=='—')lwC[c]=(lwC[c]||0)+1;});
+  var newMkts=Object.keys(twC).filter(function(c){return !lwC[c];}).length;
+
+  document.getElementById('geo-quote-text').textContent=
+    (topC[0]||'—')+' dominates with '+countryCounts[topC[0]]+' posts — '+pct(countryCounts[topC[0]],total)+' of all market activity this period.';
+  document.getElementById('geo-quote-cite').textContent='Geographic concentration · '+total+' posts analysed';
+
+  document.getElementById('geo-stats').innerHTML=[
+    {l:'Countries tracked',v:Object.keys(countryCounts).length+' markets'},
+    {l:'Top market',v:topC[0]||'—'},
+    {l:'Best converting',v:bestC?(bestC+' — '+pct(cntryRate[bestC].l,cntryRate[bestC].t)):'—'},
+    {l:'New markets this week',v:newMkts},
+  ].map(function(m){
+    return '<div class="stat-row"><div class="stat-label">'+m.l+'</div><div class="stat-val">'+m.v+'</div></div>';
+  }).join('');
+
+  document.getElementById('geo-body').innerHTML=topC.map(function(c,i){
+    var d=cntryRate[c]||{t:countryCounts[c],l:0};
+    var rate=Math.round(d.l/d.t*100);
+    var rc=rate>=20?'var(--green)':rate>=10?'var(--amber)':'var(--ink3)';
+    var bw=Math.round(countryCounts[c]/maxC*60);
+    return '<tr>'+
+      '<td><div class="geo-name">'+(i+1)+'. '+c+'</div></td>'+
+      '<td class="geo-num">'+countryCounts[c]+'</td>'+
+      '<td class="geo-num" style="color:var(--green)">'+d.l+'</td>'+
+      '<td class="geo-rate" style="color:'+rc+'">'+rate+'%</td>'+
+      '<td class="geo-bar-cell"><div class="geo-mini" style="width:'+bw+'px"></div></td>'+
+      '</tr>';
+  }).join('');
+
+  // Researchers
+  var resD={};
+  rows.forEach(function(r){
+    var res=v(r,C.submittedBy);if(!res)return;
+    if(!resD[res])resD[res]={t:0,l:0};
+    resD[res].t++;
+    if(r[C.status]==='Lead')resD[res].l++;
+  });
+  var topRes=Object.keys(resD).sort(function(a,b){return resD[b].t-resD[a].t;}).slice(0,10);
+  var maxResT=topRes.length?resD[topRes[0]].t:1;
+
+  document.getElementById('res-body').innerHTML=topRes.map(function(res,i){
+    var d=resD[res];var rate=Math.round(d.l/d.t*100);
+    var rc=rate>=20?'var(--green)':rate>=10?'var(--amber)':'var(--ink3)';
+    var bw=Math.round(d.t/maxResT*80);
+    return '<tr>'+
+      '<td class="res-num">'+( i+1)+'</td>'+
+      '<td><div class="res-name">'+res+'</div></td>'+
+      '<td class="res-num">'+d.t+'</td>'+
+      '<td class="res-num" style="color:var(--green)">'+d.l+'</td>'+
+      '<td class="res-num" style="color:'+rc+'">'+rate+'%</td>'+
+      '<td><div class="res-bar" style="width:'+bw+'px"></div></td>'+
+      '</tr>';
+  }).join('');
+
+  // Data quality
+  var enriched=rows.filter(function(r){return v(r,C.enrichStatus).toLowerCase().indexOf('success')>-1;}).length;
+  var coEnriched=rows.filter(function(r){return v(r,C.enrichCoStatus).toLowerCase().indexOf('success')>-1;}).length;
+  var qf=[
+    ['Profile enrichment',enriched,total],['Company enrichment',coEnriched,total],
+    ['Has country',rows.filter(function(r){return v(r,C.country)&&v(r,C.country)!=='—';}).length,total],
+    ['Has industry',rows.filter(function(r){return v(r,C.industry)&&v(r,C.industry)!=='—';}).length,total],
+    ['Has job title',rows.filter(function(r){return v(r,C.jobTitle)&&v(r,C.jobTitle)!=='—';}).length,total],
+    ['Has company size',rows.filter(function(r){return v(r,C.companySize)&&v(r,C.companySize)!=='—';}).length,total],
+  ];
+  document.getElementById('quality-stats').innerHTML=qf.map(function(f){
+    var rate=Math.round(f[1]/f[2]*100);
+    var cls=rate>=80?'badge-green':rate>=50?'badge-amber':'badge-red';
+    return '<div class="stat-row"><div class="stat-label">'+f[0]+'</div>'+
+      '<div style="display:flex;align-items:center;gap:8px">'+
+      '<span style="font-family:var(--mono);font-size:10px;color:var(--ink3)">'+f[1]+'/'+f[2]+'</span>'+
+      '<span class="badge '+cls+'">'+rate+'%</span>'+
+      '</div></div>';
+  }).join('');
+}
+
+init();
+</script>
+</body>
+</html>
