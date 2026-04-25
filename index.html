@@ -432,13 +432,14 @@ async function loadData(){
     document.getElementById('load-msg').textContent='PROCESSING '+rows.length+' RECORDS...';
     await new Promise(function(res){setTimeout(res,300);});
     render(rows);
+    document.getElementById('loading').style.display='none';
   }catch(e){
     console.log('CSV fetch error:', e);
     document.getElementById('load-msg').textContent='LOADING SAMPLE DATA...';
     await new Promise(function(res){setTimeout(res,400);});
     render(getSample());
+    document.getElementById('loading').style.display='none';
   }
-  document.getElementById('loading').style.display='none';
 }
 
 function parseCSV(csv) {
