@@ -442,7 +442,8 @@ async function loadData(){
 }
 
 function parseCSV(csv) {
-  var lines = csv.split(/?
+  var lines = csv.split(/
+?
 /).filter(function(l){ return l.trim(); });
   if (lines.length < 2) return [];
   
